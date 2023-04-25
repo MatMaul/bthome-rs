@@ -1,11 +1,37 @@
+#![no_std]
+
 #[cfg(feature = "encryption")]
 pub mod encryption;
+
+#[cfg(feature = "std")]
+extern crate std;
+
+use core::fmt;
+use tinyvec::SliceVec;
 
 const TEMPERATURE_OBJECT_ID: u8 = 0x02;
 const HUMIDITY_OBJECT_ID: u8 = 0x03;
 const PM2_5_OBJECT_ID: u8 = 0x0d;
 const PM10_OBJECT_ID: u8 = 0x0e;
 const CO2_OBJECT_ID: u8 = 0x12;
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum BTHomeError {
+    #[cfg(feature = "encryption")]
+    Encrypt,
+}
+
+/// Result type alias with [`Error`].
+pub type Result<T> = core::result::Result<T, BTHomeError>;
+
+impl fmt::Display for BTHomeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("bthome::Error")
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for BTHomeError {}
 
 #[derive(Debug, Clone, Copy)]
 pub struct BTHomeData {
@@ -17,7 +43,7 @@ pub struct BTHomeData {
 }
 
 impl BTHomeData {
-    pub fn new() -> BTHomeData {
+    pub const fn new() -> BTHomeData {
         BTHomeData {
             temperature: None,
             humidity: None,
@@ -27,58 +53,61 @@ impl BTHomeData {
         }
     }
 
-    pub fn temperature(mut self, temp: f32) -> Self {
+    pub const fn temperature(mut self, temp: f32) -> Self {
         self.temperature = Some(temp);
         self
     }
 
-    pub fn humidity(mut self, rh: f32) -> Self {
+    pub const fn humidity(mut self, rh: f32) -> Self {
         self.humidity = Some(rh);
         self
     }
 
-    pub fn co2(mut self, co2: u16) -> Self {
+    pub const fn co2(mut self, co2: u16) -> Self {
         self.co2 = Some(co2);
         self
     }
 
-    pub fn pm2_5(mut self, pm2_5: u16) -> Self {
+    pub const fn pm2_5(mut self, pm2_5: u16) -> Self {
         self.pm2_5 = Some(pm2_5);
         self
     }
 
-    pub fn pm10(mut self, pm10: u16) -> Self {
+    pub const fn pm10(mut self, pm10: u16) -> Self {
         self.pm10 = Some(pm10);
         self
     }
 }
 
-pub struct BTHomeUnencryptedSerializer {
-}
+pub struct BTHomeUnencryptedSerializer {}
 
 impl BTHomeUnencryptedSerializer {
     pub fn new() -> BTHomeUnencryptedSerializer {
         BTHomeUnencryptedSerializer {}
     }
 
-    pub fn serialize(self, data: BTHomeData) -> Result<Vec<u8>, TooManyValuesError> {
-        let mut packet = Vec::new();
+    pub fn serialize_to(&self, data: BTHomeData, buffer: &mut [u8]) -> Result<usize> {
+        let mut buffer = SliceVec::from(buffer);
+        buffer.set_len(0);
 
         // BTHome Device Info (Unencrypted v2)
-        packet.push(0x40);
+        buffer.push(0x40);
 
-        packet.extend(Self::get_payload(data));
-        // TODO find proper limit
-        if packet.len() > 200 {
-            return Err(TooManyValuesError)
-        }
+        Self::add_payload(data, &mut buffer);
 
-        Ok(packet)
+        Ok(buffer.len())
     }
 
-    fn get_payload(data: BTHomeData) -> Vec<u8> {
-        let mut payload = Vec::new();
+    #[cfg(feature = "std")]
+    pub fn serialize(&self, data: BTHomeData) -> Result<std::vec::Vec<u8>> {
+        let mut buffer = [0u8; 256];
 
+        let size = self.serialize_to(data, &mut buffer)?;
+
+        Ok(buffer[0..size].to_vec())
+    }
+
+    fn add_payload(data: BTHomeData, payload: &mut SliceVec<u8>) {
         if let Some(temperature) = data.temperature {
             // Temperature i16 factor 0.01
             payload.push(TEMPERATURE_OBJECT_ID);
@@ -108,14 +137,7 @@ impl BTHomeUnencryptedSerializer {
             payload.push(CO2_OBJECT_ID);
             payload.extend((co2 as u16).to_le_bytes());
         }
-
-        payload
     }
 }
 
-
 pub const SERVICE_UUID: u16 = 0xFCD2;
-
-
-#[derive(Debug, Clone)]
-pub struct TooManyValuesError;
