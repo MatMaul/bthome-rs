@@ -141,3 +141,29 @@ impl BTHomeUnencryptedSerializer {
 }
 
 pub const SERVICE_UUID: u16 = 0xFCD2;
+
+#[cfg(test)]
+mod tests {
+    const TEST_DATA: crate::BTHomeData = crate::BTHomeData::new()
+        .temperature(18.6)
+        .humidity(20.5)
+        .co2(428)
+        .pm2_5(49);
+    const TEST_BYTES: [u8; 13] = [64, 2, 68, 7, 3, 2, 8, 13, 49, 0, 18, 172, 1];
+
+    #[test]
+    fn test_unencrypted() {
+        let serializer = super::BTHomeUnencryptedSerializer::new();
+        let mut buffer = [0u8; 256];
+        let size = serializer.serialize_to(TEST_DATA, &mut buffer).unwrap();
+        assert_eq!(buffer[0..size], TEST_BYTES);
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn test_unencrypted_std() {
+        let serializer = super::BTHomeUnencryptedSerializer::new();
+        let bytes = serializer.serialize(TEST_DATA).unwrap();
+        assert_eq!(bytes, TEST_BYTES);
+    }
+}

@@ -75,13 +75,17 @@ impl BTHomeEncryptedSerializer {
 
 #[cfg(test)]
 mod tests {
-    const TEST_DATA: crate::BTHomeData = crate::BTHomeData::new().humidity(20.5).co2(428).pm2_5(49);
-    const TEST_BYTES: [u8; 18] = [
-        65, 74, 108, 47, 218, 138, 216, 242, 135, 141, 100, 0, 0, 0, 249, 120, 189, 74,
+    const TEST_DATA: crate::BTHomeData = crate::BTHomeData::new()
+        .temperature(18.6)
+        .humidity(20.5)
+        .co2(428)
+        .pm2_5(49);
+    const TEST_BYTES: [u8; 21] = [
+        65, 75, 42, 32, 212, 185, 208, 237, 26, 140, 64, 158, 112, 100, 0, 0, 0, 168, 3, 96, 60,
     ];
 
     #[test]
-    fn test_encryption() {
+    fn test_encrypted() {
         let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
         let mut buffer = [0u8; 256];
         let size = serializer.serialize_to(TEST_DATA, &mut buffer).unwrap();
@@ -90,7 +94,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    fn test_encryption_std() {
+    fn test_encrypted_std() {
         let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
         let bytes = serializer.serialize(TEST_DATA).unwrap();
         assert_eq!(bytes, TEST_BYTES);
