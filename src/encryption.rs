@@ -54,3 +54,16 @@ impl BTHomeEncryptedSerializer {
         Ok(packet)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::BTHomeData;
+
+    #[test]
+    fn test_encryption() {
+        let test_data = BTHomeData::new().co2(428).humidity(20.5).pm2_5(49);
+        let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
+        let bytes = serializer.serialize(test_data).unwrap();
+        assert_eq!(bytes, [65, 74, 108, 47, 218, 138, 216, 242, 135, 141, 100, 0, 0, 0, 249, 120, 189, 74]);
+    }
+}
