@@ -1,9 +1,11 @@
 [package]
 name = "bthome"
 version = "0.1.0"
+authors = ["Mathieu Velten <matmaul@gmail.com>"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "Apache-2.0 OR MIT"
+keywords = ["no_std", "no-std"]
+categories = ["no-std"]
 
 [dependencies]
 tinyvec = { version = "1", features = ["rustc_1_40"] }
