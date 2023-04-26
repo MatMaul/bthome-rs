@@ -26,11 +26,10 @@ impl BTHomeEncryptedSerializer {
     }
 
     pub fn serialize_to(&mut self, data: BTHomeData, buffer: &mut [u8]) -> Result<usize> {
-        let mut payload_buf = [0u8; 256];
-        let mut payload = SliceVec::from(&mut payload_buf);
-        payload.set_len(0);
+        // BTHome Device Info (Encrypted v2)
+        buffer[0] = 0x41;
 
-        BTHomeUnencryptedSerializer::add_payload(data, &mut payload);
+        let payload_size = BTHomeUnencryptedSerializer::add_payload(data, &mut buffer[1..]);
 
         let mut nonce = ArrayVec::<[u8; 13]>::new();
         nonce.extend(self.mac_address);
@@ -39,22 +38,18 @@ impl BTHomeEncryptedSerializer {
         nonce.push(0x41);
         nonce.extend(self.counter.to_le_bytes());
 
-        let mic =
-            match self
-                .cipher
-                .encrypt_in_place_detached(nonce.as_slice().into(), &[], &mut payload)
-            {
-                Ok(mic) => mic,
-                Err(_) => return Err(BTHomeError::Encrypt),
-            };
+        let mic = match self.cipher.encrypt_in_place_detached(
+            nonce.as_slice().into(),
+            &[],
+            &mut buffer[1..payload_size + 1],
+        ) {
+            Ok(mic) => mic,
+            Err(_) => return Err(BTHomeError::Encrypt),
+        };
 
         let mut buffer = SliceVec::from(buffer);
-        buffer.set_len(0);
+        buffer.set_len(payload_size + 1);
 
-        // BTHome Device Info (Encrypted v2)
-        buffer.push(0x41);
-
-        buffer.extend_from_slice(&payload);
         buffer.extend(self.counter.to_le_bytes());
         buffer.extend(mic);
 
@@ -66,9 +61,7 @@ impl BTHomeEncryptedSerializer {
     #[cfg(feature = "std")]
     pub fn serialize(&mut self, data: BTHomeData) -> Result<std::vec::Vec<u8>> {
         let mut buffer = [0u8; 256];
-
         let size = self.serialize_to(data, &mut buffer)?;
-
         Ok(buffer[0..size].to_vec())
     }
 }

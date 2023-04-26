@@ -87,27 +87,25 @@ impl BTHomeUnencryptedSerializer {
     }
 
     pub fn serialize_to(&self, data: BTHomeData, buffer: &mut [u8]) -> Result<usize> {
-        let mut buffer = SliceVec::from(buffer);
-        buffer.set_len(0);
-
         // BTHome Device Info (Unencrypted v2)
-        buffer.push(0x40);
+        buffer[0] = 0x40;
 
-        Self::add_payload(data, &mut buffer);
+        let payload_size = Self::add_payload(data, &mut buffer[1..]);
 
-        Ok(buffer.len())
+        Ok(payload_size + 1)
     }
 
     #[cfg(feature = "std")]
     pub fn serialize(&self, data: BTHomeData) -> Result<std::vec::Vec<u8>> {
         let mut buffer = [0u8; 256];
-
         let size = self.serialize_to(data, &mut buffer)?;
-
         Ok(buffer[0..size].to_vec())
     }
 
-    fn add_payload(data: BTHomeData, payload: &mut SliceVec<u8>) {
+    fn add_payload(data: BTHomeData, payload: &mut [u8]) -> usize {
+        let mut payload = SliceVec::from(payload);
+        payload.set_len(0);
+
         if let Some(temperature) = data.temperature {
             // Temperature i16 factor 0.01
             payload.push(TEMPERATURE_OBJECT_ID);
@@ -137,6 +135,8 @@ impl BTHomeUnencryptedSerializer {
             payload.push(CO2_OBJECT_ID);
             payload.extend((co2 as u16).to_le_bytes());
         }
+
+        payload.len()
     }
 }
 
