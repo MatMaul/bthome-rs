@@ -2,7 +2,7 @@ use aes::{cipher::generic_array::GenericArray, Aes128};
 use ccm::{consts::*, AeadInPlace, Ccm, KeyInit};
 use tinyvec::{ArrayVec, SliceVec};
 
-use crate::{BTHomeData, BTHomeError, Result};
+use crate::*;
 
 type Aes128Ccm = Ccm<Aes128, U4, U13>;
 
@@ -29,7 +29,7 @@ impl BTHomeEncryptedSerializer {
         // BTHome Device Info (Encrypted v2)
         buffer[0] = 0x41;
 
-        let payload_size = crate::add_payload(data, &mut buffer[1..])?;
+        let payload_size = add_payload(data, &mut buffer[1..])?;
 
         let mut nonce = ArrayVec::<[u8; 13]>::new();
         nonce.extend(self.mac_address);
@@ -48,6 +48,8 @@ impl BTHomeEncryptedSerializer {
 
         let mut buffer = SliceVec::from(buffer);
         buffer.set_len(payload_size + 1);
+
+        check_remaining_capacity(&buffer, 8)?;
 
         buffer.extend(self.counter.to_le_bytes());
         buffer.extend(mic);
@@ -90,5 +92,13 @@ mod tests {
         let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
         let bytes = serializer.serialize(TEST_DATA).unwrap();
         assert_eq!(bytes, TEST_BYTES);
+    }
+
+    #[test]
+    fn test_out_of_bounds_encrypted_overhead() {
+        let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
+        let mut buffer = [0u8; 14];
+        let res = serializer.serialize_to(TEST_DATA, &mut buffer);
+        assert_eq!(res, Err(crate::BTHomeError::OutOfBounds));
     }
 }
