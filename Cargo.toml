@@ -1,14 +1,16 @@
 [package]
 name = "bthome"
+description = "Library to create BLE advertising packets following BTHome specification"
 version = "0.0.1"
 authors = ["Mathieu Velten <matmaul@gmail.com>"]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 keywords = ["no_std", "no-std"]
 categories = ["no-std"]
+repository = "https://github.com/MatMaul/bthome-rs"
 
 [dependencies]
-tinyvec = { version = "1", features = ["rustc_1_40"] }
+tinyvec = { version = "1", features = ["rustc_1_57"] }
 aes = { version = "0.8", optional = true }
 ccm = { version = "0.5", optional = true }
 

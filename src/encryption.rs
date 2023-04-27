@@ -34,7 +34,6 @@ impl BTHomeEncryptedSerializer {
         let mut nonce = ArrayVec::<[u8; 13]>::new();
         nonce.extend(self.mac_address);
         nonce.extend([0xD2, 0xFC]);
-        // TODO test nonce.extend([0xFC, 0xD2]);
         nonce.push(0x41);
         nonce.extend(self.counter.to_le_bytes());
 
