@@ -2,7 +2,7 @@ use aes::{cipher::generic_array::GenericArray, Aes128};
 use ccm::{consts::*, AeadInPlace, Ccm, KeyInit};
 use tinyvec::{ArrayVec, SliceVec};
 
-use crate::{BTHomeData, BTHomeError, BTHomeUnencryptedSerializer, Result};
+use crate::{BTHomeData, BTHomeError, Result};
 
 type Aes128Ccm = Ccm<Aes128, U4, U13>;
 
@@ -29,7 +29,7 @@ impl BTHomeEncryptedSerializer {
         // BTHome Device Info (Encrypted v2)
         buffer[0] = 0x41;
 
-        let payload_size = BTHomeUnencryptedSerializer::add_payload(data, &mut buffer[1..]);
+        let payload_size = crate::add_payload(data, &mut buffer[1..])?;
 
         let mut nonce = ArrayVec::<[u8; 13]>::new();
         nonce.extend(self.mac_address);

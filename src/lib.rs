@@ -19,6 +19,7 @@ const CO2_OBJECT_ID: u8 = 0x12;
 pub enum BTHomeError {
     #[cfg(feature = "encryption")]
     Encrypt,
+    OutOfBounds,
 }
 
 /// Result type alias with [`Error`].
@@ -90,7 +91,7 @@ impl BTHomeUnencryptedSerializer {
         // BTHome Device Info (Unencrypted v2)
         buffer[0] = 0x40;
 
-        let payload_size = Self::add_payload(data, &mut buffer[1..]);
+        let payload_size = add_payload(data, &mut buffer[1..])?;
 
         Ok(payload_size + 1)
     }
@@ -101,43 +102,54 @@ impl BTHomeUnencryptedSerializer {
         let size = self.serialize_to(data, &mut buffer)?;
         Ok(buffer[0..size].to_vec())
     }
+}
 
-    fn add_payload(data: BTHomeData, payload: &mut [u8]) -> usize {
-        let mut payload = SliceVec::from(payload);
-        payload.set_len(0);
+fn add_payload(data: BTHomeData, payload: &mut [u8]) -> Result<usize> {
+    let mut payload = SliceVec::try_from_slice_len(payload, 0).ok_or(BTHomeError::OutOfBounds)?;
 
-        if let Some(temperature) = data.temperature {
-            // Temperature i16 factor 0.01
-            payload.push(TEMPERATURE_OBJECT_ID);
-            payload.extend(((temperature / 0.01) as i16).to_le_bytes());
-        }
-
-        if let Some(humidity) = data.humidity {
-            // Humidity u16 factor 0.01
-            payload.push(HUMIDITY_OBJECT_ID);
-            payload.extend(((humidity / 0.01) as u16).to_le_bytes());
-        }
-
-        if let Some(pm2_5) = data.pm2_5 {
-            // PM2.5 u16 factor 1
-            payload.push(PM2_5_OBJECT_ID);
-            payload.extend((pm2_5 as u16).to_le_bytes());
-        }
-
-        if let Some(pm10) = data.pm10 {
-            // PM10 u16 factor 1
-            payload.push(PM10_OBJECT_ID);
-            payload.extend((pm10 as u16).to_le_bytes());
-        }
-
-        if let Some(co2) = data.co2 {
-            // CO2 u16 factor 1
-            payload.push(CO2_OBJECT_ID);
-            payload.extend((co2 as u16).to_le_bytes());
-        }
-
-        payload.len()
+    if let Some(temperature) = data.temperature {
+        // Temperature i16 factor 0.01
+        check_remaining_capacity(&payload, 3)?;
+        payload.push(TEMPERATURE_OBJECT_ID);
+        payload.extend(((temperature / 0.01) as i16).to_le_bytes());
     }
+
+    if let Some(humidity) = data.humidity {
+        // Humidity u16 factor 0.01
+        check_remaining_capacity(&payload, 3)?;
+        payload.push(HUMIDITY_OBJECT_ID);
+        payload.extend(((humidity / 0.01) as u16).to_le_bytes());
+    }
+
+    if let Some(pm2_5) = data.pm2_5 {
+        // PM2.5 u16 factor 1
+        check_remaining_capacity(&payload, 3)?;
+        payload.push(PM2_5_OBJECT_ID);
+        payload.extend((pm2_5 as u16).to_le_bytes());
+    }
+
+    if let Some(pm10) = data.pm10 {
+        // PM10 u16 factor 1
+        check_remaining_capacity(&payload, 3)?;
+        payload.push(PM10_OBJECT_ID);
+        payload.extend((pm10 as u16).to_le_bytes());
+    }
+
+    if let Some(co2) = data.co2 {
+        // CO2 u16 factor 1
+        check_remaining_capacity(&payload, 3)?;
+        payload.push(CO2_OBJECT_ID);
+        payload.extend((co2 as u16).to_le_bytes());
+    }
+
+    Ok(payload.len())
+}
+
+fn check_remaining_capacity(slice: &SliceVec<u8>, needed_bytes: usize) -> Result<()> {
+    if slice.capacity() - slice.len() < needed_bytes {
+        return Err(BTHomeError::OutOfBounds);
+    }
+    Ok(())
 }
 
 pub const SERVICE_UUID: u16 = 0xFCD2;
@@ -165,5 +177,13 @@ mod tests {
         let serializer = super::BTHomeUnencryptedSerializer::new();
         let bytes = serializer.serialize(TEST_DATA).unwrap();
         assert_eq!(bytes, TEST_BYTES);
+    }
+
+    #[test]
+    fn test_out_of_bounds() {
+        let serializer = super::BTHomeUnencryptedSerializer::new();
+        let mut buffer = [0u8; 2];
+        let res = serializer.serialize_to(TEST_DATA, &mut buffer);
+        assert_eq!(res, Err(crate::BTHomeError::OutOfBounds));
     }
 }
