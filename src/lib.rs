@@ -164,7 +164,7 @@ mod tests {
     const TEST_BYTES: [u8; 13] = [64, 2, 68, 7, 3, 2, 8, 13, 49, 0, 18, 172, 1];
 
     #[test]
-    fn test_unencrypted() {
+    fn serialize() {
         let serializer = super::BTHomeUnencryptedSerializer::new();
         let mut buffer = [0u8; 256];
         let size = serializer.serialize_to(TEST_DATA, &mut buffer).unwrap();
@@ -173,14 +173,14 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    fn test_unencrypted_std() {
+    fn serialize_std() {
         let serializer = super::BTHomeUnencryptedSerializer::new();
         let bytes = serializer.serialize(TEST_DATA).unwrap();
         assert_eq!(bytes, TEST_BYTES);
     }
 
     #[test]
-    fn test_out_of_bounds() {
+    fn out_of_bounds() {
         let serializer = super::BTHomeUnencryptedSerializer::new();
         let mut buffer = [0u8; 2];
         let res = serializer.serialize_to(TEST_DATA, &mut buffer);

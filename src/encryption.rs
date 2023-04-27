@@ -79,7 +79,7 @@ mod tests {
     ];
 
     #[test]
-    fn test_encrypted() {
+    fn serialize() {
         let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
         let mut buffer = [0u8; 256];
         let size = serializer.serialize_to(TEST_DATA, &mut buffer).unwrap();
@@ -88,14 +88,14 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    fn test_encrypted_std() {
+    fn serialize_std() {
         let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
         let bytes = serializer.serialize(TEST_DATA).unwrap();
         assert_eq!(bytes, TEST_BYTES);
     }
 
     #[test]
-    fn test_out_of_bounds_encrypted_overhead() {
+    fn encryption_overhead_out_of_bounds() {
         let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
         let mut buffer = [0u8; 14];
         let res = serializer.serialize_to(TEST_DATA, &mut buffer);
