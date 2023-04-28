@@ -296,9 +296,9 @@ pub const SERVICE_UUID: u16 = 0xFCD2;
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
+    use super::*;
 
-    const TEST_DATA: crate::BTHomeData = crate::BTHomeData::new()
+    const TEST_DATA: BTHomeData = BTHomeData::new()
         .temperature(18.6)
         .humidity(20.5)
         .illuminance(0.02)

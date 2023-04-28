@@ -69,7 +69,9 @@ impl BTHomeEncryptedSerializer {
 
 #[cfg(test)]
 mod tests {
-    const TEST_DATA: crate::BTHomeData = crate::BTHomeData::new()
+    use super::*;
+
+    const TEST_DATA: BTHomeData = BTHomeData::new()
         .temperature(18.6)
         .humidity(20.5)
         .co2(428)
@@ -80,7 +82,7 @@ mod tests {
 
     #[test]
     fn serialize() {
-        let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
+        let mut serializer = BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
         let mut buffer = [0u8; 256];
         let size = serializer.serialize_to(TEST_DATA, &mut buffer).unwrap();
         assert_eq!(buffer[0..size], TEST_BYTES);
@@ -89,14 +91,14 @@ mod tests {
     #[test]
     #[cfg(feature = "std")]
     fn serialize_std() {
-        let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
+        let mut serializer = BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
         let bytes = serializer.serialize(TEST_DATA).unwrap();
         assert_eq!(bytes, TEST_BYTES);
     }
 
     #[test]
     fn encryption_overhead_buffer_overflow() {
-        let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
+        let mut serializer = BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
         let mut buffer = [0u8; 14];
         let res = serializer.serialize_to(TEST_DATA, &mut buffer);
         assert_eq!(res, Err(crate::BTHomeError::BufferOverflow));
