@@ -6,7 +6,6 @@ pub mod encryption;
 #[cfg(feature = "std")]
 extern crate std;
 
-use core::fmt;
 use tinyvec::SliceVec;
 
 const BATTERY_OBJECT_ID: u8 = 0x01;
@@ -38,12 +37,6 @@ pub enum BTHomeError {
 
 /// Result type alias with [`Error`].
 pub type Result<T> = core::result::Result<T, BTHomeError>;
-
-impl fmt::Display for BTHomeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("bthome::Error")
-    }
-}
 
 #[cfg(feature = "std")]
 impl std::error::Error for BTHomeError {}

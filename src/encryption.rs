@@ -37,14 +37,14 @@ impl BTHomeEncryptedSerializer {
         nonce.push(0x41);
         nonce.extend(self.counter.to_le_bytes());
 
-        let mic = match self.cipher.encrypt_in_place_detached(
-            nonce.as_slice().into(),
-            &[],
-            &mut buffer[1..payload_size + 1],
-        ) {
-            Ok(mic) => mic,
-            Err(_) => return Err(BTHomeError::Encrypt),
-        };
+        let mic = self
+            .cipher
+            .encrypt_in_place_detached(
+                nonce.as_slice().into(),
+                &[],
+                &mut buffer[1..payload_size + 1],
+            )
+            .map_err(|_| BTHomeError::Encrypt)?;
 
         let mut buffer = SliceVec::from(buffer);
         buffer.set_len(payload_size + 1);
