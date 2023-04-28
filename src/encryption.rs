@@ -95,10 +95,10 @@ mod tests {
     }
 
     #[test]
-    fn encryption_overhead_out_of_bounds() {
+    fn encryption_overhead_buffer_overflow() {
         let mut serializer = super::BTHomeEncryptedSerializer::new([1u8; 16], [2u8; 6], 100);
         let mut buffer = [0u8; 14];
         let res = serializer.serialize_to(TEST_DATA, &mut buffer);
-        assert_eq!(res, Err(crate::BTHomeError::OutOfBounds));
+        assert_eq!(res, Err(crate::BTHomeError::BufferOverflow));
     }
 }
