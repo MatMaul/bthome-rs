@@ -35,6 +35,13 @@ pub enum BTHomeError {
     ValueUnderflow,
 }
 
+#[cfg(feature = "std")]
+impl std::fmt::Display for BTHomeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("bthome::Error")
+    }
+}
+
 /// Result type alias with [`Error`].
 pub type Result<T> = core::result::Result<T, BTHomeError>;
 
@@ -143,24 +150,20 @@ impl BTHomeData {
 
 pub struct BTHomeUnencryptedSerializer {}
 
-impl BTHomeUnencryptedSerializer {
-    pub fn new() -> BTHomeUnencryptedSerializer {
-        BTHomeUnencryptedSerializer {}
-    }
-
-    pub fn serialize_to(&self, data: BTHomeData, buffer: &mut [u8]) -> Result<usize> {
+impl BTHomeData {
+    pub fn to_slice(self, buffer: &mut [u8]) -> Result<usize> {
         // BTHome Device Info (Unencrypted v2)
         buffer[0] = 0x40;
 
-        let payload_size = add_payload(data, &mut buffer[1..])?;
+        let payload_size = add_payload(self, &mut buffer[1..])?;
 
         Ok(payload_size + 1)
     }
 
     #[cfg(feature = "std")]
-    pub fn serialize(&self, data: BTHomeData) -> Result<std::vec::Vec<u8>> {
+    pub fn to_vec(self) -> Result<std::vec::Vec<u8>> {
         let mut buffer = [0u8; 256];
-        let size = self.serialize_to(data, &mut buffer)?;
+        let size = self.to_slice(&mut buffer)?;
         Ok(buffer[0..size].to_vec())
     }
 }
@@ -301,49 +304,43 @@ mod tests {
 
     #[test]
     fn serialize() {
-        let serializer = BTHomeUnencryptedSerializer::new();
         let mut buffer = [0u8; 256];
-        let size = serializer.serialize_to(TEST_DATA, &mut buffer).unwrap();
+        let size = TEST_DATA.to_slice(&mut buffer).unwrap();
         assert_eq!(buffer[0..size], TEST_BYTES);
     }
 
     #[test]
     #[cfg(feature = "std")]
     fn serialize_std() {
-        let serializer = super::BTHomeUnencryptedSerializer::new();
-        let bytes = serializer.serialize(TEST_DATA).unwrap();
+        let bytes = TEST_DATA.to_vec().unwrap();
         assert_eq!(bytes, TEST_BYTES);
     }
 
     #[test]
     fn buffer_overflow() {
-        let serializer = BTHomeUnencryptedSerializer::new();
         let mut buffer = [0u8; 2];
-        let res = serializer.serialize_to(TEST_DATA, &mut buffer);
+        let res = TEST_DATA.to_slice(&mut buffer);
         assert_eq!(res, Err(crate::BTHomeError::BufferOverflow));
     }
 
     #[test]
     fn u16_overflow() {
-        let serializer = BTHomeUnencryptedSerializer::new();
         let mut buffer = [0u8; 256];
-        let res = serializer.serialize_to(BTHomeData::new().humidity(1000.0), &mut buffer);
+        let res = BTHomeData::new().humidity(1000.0).to_slice(&mut buffer);
         assert_eq!(res, Err(crate::BTHomeError::ValueOverflow));
     }
 
     #[test]
     fn u16_underflow() {
-        let serializer = BTHomeUnencryptedSerializer::new();
         let mut buffer = [0u8; 256];
-        let res = serializer.serialize_to(BTHomeData::new().humidity(-1.0), &mut buffer);
+        let res = BTHomeData::new().humidity(-1.0).to_slice(&mut buffer);
         assert_eq!(res, Err(crate::BTHomeError::ValueUnderflow));
     }
 
     #[test]
     fn i16_underflow() {
-        let serializer = BTHomeUnencryptedSerializer::new();
         let mut buffer = [0u8; 256];
-        let res = serializer.serialize_to(BTHomeData::new().temperature(-1000.0), &mut buffer);
+        let res = BTHomeData::new().temperature(-1000.0).to_slice(&mut buffer);
         assert_eq!(res, Err(crate::BTHomeError::ValueUnderflow));
     }
 }
